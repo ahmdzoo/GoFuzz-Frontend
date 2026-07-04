@@ -123,7 +123,7 @@ const HeroSection = () => {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/analyze", {
+      const res = await fetch("https://backendgofuzz.ryaze.my.id/analyze", {
         method: "POST",
         body: formData,
       });
@@ -177,7 +177,7 @@ const HeroSection = () => {
     }, 1000);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/scan", {
+      const res = await fetch("https://backendgofuzz.ryaze.my.id/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -215,7 +215,7 @@ const HeroSection = () => {
 
     setCrawling(true);
     try {
-      const res = await fetch("http://127.0.0.1:5000/crawl", {
+      const res = await fetch("https://backendgofuzz.ryaze.my.id/crawl", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -266,7 +266,7 @@ const HeroSection = () => {
 
     setDetectingParams(true);
     try {
-      const res = await fetch("http://127.0.0.1:5000/detect-params", {
+      const res = await fetch("https://backendgofuzz.ryaze.my.id/detect-params", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -356,7 +356,7 @@ const HeroSection = () => {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/parse-burp", {
+      const res = await fetch("https://backendgofuzz.ryaze.my.id/parse-burp", {
         method: "POST",
         body: formData,
       });
