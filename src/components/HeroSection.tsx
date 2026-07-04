@@ -2,6 +2,32 @@ import { useState } from "react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { useScan } from "@/context/ScanContext";
 import { Upload, Globe, Shield, FileText, Loader2, Hash } from "lucide-react";
+import { attackToSeverity } from "@/lib/constants";
+
+interface ScanItem {
+  attack?: string;
+  attack_type?: string;
+  vulnerability?: string;
+  payload?: string;
+  status?: string | number;
+  length?: string | number;
+  confidence?: number;
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+const parameterExamples = [
+  { name: "q", desc: "Search query (paling umum)", example: "?q=' OR 1=1 --", risks: "SQL Injection, XSS" },
+  { name: "id", desc: "ID parameter", example: "?id=1", risks: "SQL Injection, IDOR" },
+  { name: "search", desc: "Search query", example: "?search=test", risks: "SQL Injection, XSS" },
+  { name: "sort", desc: "Sort/Order by", example: "?sort=name", risks: "SQL Injection (ORDER BY)" },
+  { name: "file", desc: "File download", example: "?file=report.pdf", risks: "Path Traversal, LFI" },
+  { name: "redirect", desc: "Redirect URL", example: "?redirect=home", risks: "Open Redirect, SSRF" },
+  { name: "email", desc: "Email parameter", example: "?email=admin@test.com", risks: "SQL Injection, NoSQL" },
+  { name: "username", desc: "Username parameter", example: "?username=admin", risks: "SQL Injection, Auth Bypass" },
+  { name: "page", desc: "Pagination", example: "?page=1", risks: "SQL Injection, Path Traversal" },
+  { name: "category", desc: "Category filter", example: "?category=electronics", risks: "SQL Injection" },
+];
 
 const HeroSection = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -27,7 +53,7 @@ const HeroSection = () => {
 
   const { setResult } = useScan();
 
-  const formatToVulnerabilities = (data: any[]) => {
+  const formatToVulnerabilities = (data: ScanItem[]) => {
     if (!Array.isArray(data)) return [];
 
     const formattedData = data.map((item, index) => ({
@@ -50,27 +76,8 @@ const HeroSection = () => {
     return formattedData;
   };
 
-  // Fungsi untuk mendapatkan severity dari attack type
-  const getSeverityFromAttack = (attack: string) => {
-    if (attack === "SQL Injection") return "🔴 Vulnerable";
-    if (attack === "Command Injection") return "🔴 Vulnerable";
-    if (attack === "Cross-Site Scripting (XSS)") return "🟠 Suspicious";
-    if (attack === "XSS") return "🟠 Suspicious";
-    if (attack === "Path Traversal") return "🟠 Suspicious";
-    if (attack === "Normal") return "🟢 Safe";
-    return "⚪ Unknown";
-  };
-
-  // Fungsi untuk mendapatkan default vulnerability
-  const getDefaultVulnerability = (attack: string) => {
-    if (attack === "SQL Injection") return "🔴 Vulnerable";
-    if (attack === "Command Injection") return "🔴 Vulnerable";
-    if (attack === "Cross-Site Scripting (XSS)") return "🟠 Suspicious";
-    if (attack === "XSS") return "🟠 Suspicious";
-    if (attack === "Path Traversal") return "🟠 Suspicious";
-    if (attack === "Normal") return "🟢 Safe";
-    return "⚪ Unknown";
-  };
+  const getSeverityFromAttack = attackToSeverity;
+  const getDefaultVulnerability = attackToSeverity;
 
   // ============ UPDATED: Rekomendasi berdasarkan attack type ============
   const getRecommendation = (attack: string, vulnerability: string) => {
@@ -123,7 +130,7 @@ const HeroSection = () => {
     formData.append("file", file);
 
     try {
-      const res = await fetch("https://backendgofuzz.ryaze.my.id/analyze", {
+      const res = await fetch(`${API_BASE}/analyze`, {
         method: "POST",
         body: formData,
       });
@@ -155,18 +162,13 @@ const HeroSection = () => {
   const handleScanURL = async () => {
     if (!url) return alert("Masukkan URL!");
 
-    // 🔴 SET LOADING
     setScanLoading(true);
-
-    // 🔴 PAKAI VARIABLE LOKAL, BUKAN STATE!
     const startTime = Date.now();
     setScanStartTime(startTime);
     setElapsedTime(0);
     setEstimatedTime(0);
 
-    // 🔴 TIMER UPDATE SETIAP 1 DETIK
     const timer = setInterval(() => {
-      // 🔴 PAKAI startTime LANGSUNG, BUKAN scanStartTime
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       setElapsedTime(elapsed);
 
@@ -177,7 +179,7 @@ const HeroSection = () => {
     }, 1000);
 
     try {
-      const res = await fetch("https://backendgofuzz.ryaze.my.id/scan", {
+      const res = await fetch(`${API_BASE}/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -215,7 +217,7 @@ const HeroSection = () => {
 
     setCrawling(true);
     try {
-      const res = await fetch("https://backendgofuzz.ryaze.my.id/crawl", {
+      const res = await fetch(`${API_BASE}/crawl`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -266,7 +268,7 @@ const HeroSection = () => {
 
     setDetectingParams(true);
     try {
-      const res = await fetch("https://backendgofuzz.ryaze.my.id/detect-params", {
+      const res = await fetch(`${API_BASE}/detect-params`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -280,70 +282,6 @@ const HeroSection = () => {
     setDetectingParams(false);
   };
 
-  const parameterExamples = [
-    {
-      name: "q",
-      desc: "Search query (paling umum)",
-      example: "?q=' OR 1=1 --",
-      risks: "SQL Injection, XSS",
-    },
-    {
-      name: "id",
-      desc: "ID parameter",
-      example: "?id=1",
-      risks: "SQL Injection, IDOR",
-    },
-    {
-      name: "search",
-      desc: "Search query",
-      example: "?search=test",
-      risks: "SQL Injection, XSS",
-    },
-    {
-      name: "sort",
-      desc: "Sort/Order by",
-      example: "?sort=name",
-      risks: "SQL Injection (ORDER BY)",
-    },
-    {
-      name: "file",
-      desc: "File download",
-      example: "?file=report.pdf",
-      risks: "Path Traversal, LFI",
-    },
-    {
-      name: "redirect",
-      desc: "Redirect URL",
-      example: "?redirect=home",
-      risks: "Open Redirect, SSRF",
-    },
-    {
-      name: "email",
-      desc: "Email parameter",
-      example: "?email=admin@test.com",
-      risks: "SQL Injection, NoSQL",
-    },
-    {
-      name: "username",
-      desc: "Username parameter",
-      example: "?username=admin",
-      risks: "SQL Injection, Auth Bypass",
-    },
-    {
-      name: "page",
-      desc: "Pagination",
-      example: "?page=1",
-      risks: "SQL Injection, Path Traversal",
-    },
-    {
-      name: "category",
-      desc: "Category filter",
-      example: "?category=electronics",
-      risks: "SQL Injection",
-    },
-  ];
-
-  // ============ HANDLER UNTUK PARSE BURP (TAMBAHAN BARU) ============
   const handleParseBurp = async () => {
     if (!file) {
       alert("Pilih file Burp (XML/CSV) dulu!");
@@ -356,7 +294,7 @@ const HeroSection = () => {
     formData.append("file", file);
 
     try {
-      const res = await fetch("https://backendgofuzz.ryaze.my.id/parse-burp", {
+      const res = await fetch(`${API_BASE}/parse-burp`, {
         method: "POST",
         body: formData,
       });

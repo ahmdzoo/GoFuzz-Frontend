@@ -1,6 +1,11 @@
-// data/owaspData.ts
+interface OwaspEntry {
+  title: string;
+  desc: string;
+  impact: string;
+  mitigation: string[];
+}
 
-export const owaspMap: Record<string, any> = {
+export const owaspMap: Record<string, OwaspEntry> = {
   // 1. SQL Injection
   "SQL Injection": {
     title: "SQL Injection",
@@ -97,8 +102,7 @@ export const owaspMap: Record<string, any> = {
   },
 };
 
-// Default untuk attack yang tidak dikenal
-export const getOwaspData = (attack: string) => {
+export const getOwaspData = (attack: string): OwaspEntry => {
   // Cek langsung
   if (owaspMap[attack]) return owaspMap[attack];
 

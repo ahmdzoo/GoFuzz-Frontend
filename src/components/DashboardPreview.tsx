@@ -11,12 +11,16 @@ import {
   Search,
   BookOpen,
   AlertTriangle,
-  Printer,
   RefreshCw,
 } from "lucide-react";
-import { useScan } from "@/context/ScanContext";
+import { useScan, type VulnerabilityItem } from "@/context/ScanContext";
+import { severityToLevel } from "@/lib/constants";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+interface jsPDFWithTable extends jsPDF {
+  lastAutoTable?: { finalY: number };
+}
 
 type MenuType = "dashboard" | "analyzer" | "insight" | "report";
 
@@ -34,55 +38,16 @@ const DashboardPreview = () => {
   const vulnerabilitiesList = Array.isArray(result) ? result : [];
 
 
-  const getSeverityLevelByAttack = (attackType: string) => {
-    if (attackType === "SQL Injection") return "High";
-    if (attackType === "Command Injection") return "High";
-    if (attackType === "Cross-Site Scripting (XSS)") return "Medium";
-    if (attackType === "XSS") return "Medium";
-    if (attackType === "Path Traversal") return "Medium";
-    if (attackType === "Normal") return "Low";
-    return "Medium";
-  };
-
-  const getSeverityLevel = (severity: string) => {
-    // Normalisasi: cek apakah severity mengandung kata kunci
-    if (!severity) return "Medium";
-
-    const s = severity.toString();
-
-    if (s.includes("Vulnerable") || s === "🔴 Vulnerable") return "High";
-    if (s.includes("Suspicious") || s === "🟠 Suspicious") return "Medium";
-    if (s.includes("Check Needed") || s === "🟡 Check Needed") return "Medium";
-    if (s.includes("Safe") || s === "🟢 Safe") return "Low";
-
-    // Fallback berdasarkan isi
-    return "Medium";
-  };
-
   const totalPayloads = vulnerabilitiesList.length;
   const vulnerableCount = vulnerabilitiesList.filter(
     (v) => v.raw_vulnerability === "🔴 Vulnerable",
   ).length;
-
   const suspiciousCount = vulnerabilitiesList.filter(
     (v) =>
       v.raw_vulnerability === "🟠 Suspicious" ||
       v.raw_vulnerability === "🟡 Check Needed",
   ).length;
-
   const safeCount = vulnerabilitiesList.filter(
-    (v) => v.raw_vulnerability === "🟢 Safe",
-  ).length;
-
-  const highCount = vulnerabilitiesList.filter(
-    (v) => v.raw_vulnerability === "🔴 Vulnerable",
-  ).length;
-  const mediumCount = vulnerabilitiesList.filter(
-    (v) =>
-      v.raw_vulnerability === "🟠 Suspicious" ||
-      v.raw_vulnerability === "🟡 Check Needed",
-  ).length;
-  const lowCount = vulnerabilitiesList.filter(
     (v) => v.raw_vulnerability === "🟢 Safe",
   ).length;
 
@@ -125,7 +90,7 @@ const DashboardPreview = () => {
 
   const topAttack =
     Object.entries(attackDistribution).sort(
-      (a: any, b: any) => b[1] - a[1],
+      (a: [string, number], b: [string, number]) => b[1] - a[1],
     )[0]?.[0] || "-";
 
   // ============================================
@@ -193,7 +158,7 @@ const DashboardPreview = () => {
     return aPriority - bPriority;
   });
 
-  const exportToCSV = (data: any[], filename: string) => {
+  const exportToCSV = (data: VulnerabilityItem[], filename: string) => {
     if (data.length === 0) {
       alert("Tidak ada data untuk di-export!");
       return;
@@ -356,7 +321,7 @@ const DashboardPreview = () => {
 
                       // 🔴 KALAU LEBIH DARI 1, PAKAI PATH SEPERTI BIASA
                       return keys.reduce(
-                        (acc: any, key, idx) => {
+                        (acc: { offset: number; paths: React.ReactNode[] }, key: string, idx: number) => {
                           const value = attackDistribution[key];
                           const angle = (value / totalPayloads) * 360;
                           const startAngle = acc.offset;
@@ -540,7 +505,7 @@ const DashboardPreview = () => {
   };
 
   // Fungsi untuk mendapatkan display vulnerability
-  const getDisplayVulnerability = (item: any) => {
+  const getDisplayVulnerability = (item: VulnerabilityItem) => {
     if (item.raw_vulnerability) return item.raw_vulnerability;
 
     if (item.attack_type === "SQL Injection") return "🔴 Vulnerable";
@@ -1199,7 +1164,7 @@ const DashboardPreview = () => {
           margin: { left: 15, right: 15 },
         });
 
-        yPos = (doc as any).lastAutoTable.finalY + 10;
+        yPos = (doc as jsPDFWithTable).lastAutoTable!.finalY + 10;
 
         if (yPos > 200) {
           doc.addPage();
@@ -1232,7 +1197,7 @@ const DashboardPreview = () => {
           margin: { left: 15, right: 15 },
         });
 
-        yPos = (doc as any).lastAutoTable.finalY + 10;
+        yPos = (doc as jsPDFWithTable).lastAutoTable!.finalY + 10;
 
         if (dangerousPayloads.length > 0) {
           if (yPos > 210) {
@@ -1267,7 +1232,7 @@ const DashboardPreview = () => {
             margin: { left: 15, right: 15 },
           });
 
-          yPos = (doc as any).lastAutoTable.finalY + 10;
+          yPos = (doc as jsPDFWithTable).lastAutoTable!.finalY + 10;
         }
 
         if (yPos > 230) {
@@ -1392,17 +1357,17 @@ const DashboardPreview = () => {
             <p className="text-sm text-muted-foreground">
               Critical (Vulnerable)
             </p>
-            <h3 className="text-2xl font-bold text-red-400">{highCount}</h3>
+            <h3 className="text-2xl font-bold text-red-400">{vulnerableCount}</h3>
           </div>
           <div className="glass-card p-4 rounded-xl text-center">
             <p className="text-sm text-muted-foreground">High (Suspicious)</p>
             <h3 className="text-2xl font-bold text-orange-400">
-              {mediumCount}
+              {suspiciousCount}
             </h3>
           </div>
           <div className="glass-card p-4 rounded-xl text-center">
             <p className="text-sm text-muted-foreground">Low (Safe)</p>
-            <h3 className="text-2xl font-bold text-green-400">{lowCount}</h3>
+            <h3 className="text-2xl font-bold text-green-400">{safeCount}</h3>
           </div>
         </div>
 
@@ -1603,33 +1568,33 @@ const DashboardPreview = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Berdasarkan analisis keamanan yang dilakukan, ditemukan{" "}
                 <span className="text-red-400 font-semibold">
-                  {highCount} payload dengan status 🔴 Vulnerable
+                  {vulnerableCount} payload dengan status 🔴 Vulnerable
                 </span>
                 ,
                 <span className="text-orange-400 font-semibold">
                   {" "}
-                  {mediumCount} payload dengan status 🟠 Suspicious
+                  {suspiciousCount} payload dengan status 🟠 Suspicious
                 </span>
                 , dan{" "}
                 <span className="text-green-400 font-semibold">
                   {" "}
-                  {lowCount} payload dengan status 🟢 Safe
+                  {safeCount} payload dengan status 🟢 Safe
                 </span>
                 .
-                {highCount > 0 &&
+                {vulnerableCount > 0 &&
                   " Risiko utama berasal dari SQL Injection, Command Injection, dan XSS attacks yang membutuhkan penanganan segera."}
               </p>
               <h4 className="font-semibold mb-3 mt-4">Rekomendasi Prioritas</h4>
               <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                {highCount > 0 && (
+                {vulnerableCount > 0 && (
                   <li className="text-red-400/80">
-                    🔴 Segera investigasi dan perbaiki {highCount} payload yang
+                    🔴 Segera investigasi dan perbaiki {vulnerableCount} payload yang
                     terdeteksi Vulnerable
                   </li>
                 )}
-                {mediumCount > 0 && (
+                {suspiciousCount > 0 && (
                   <li className="text-orange-400/80">
-                    🟠 Lakukan penanganan pada {mediumCount} payload yang
+                    🟠 Lakukan penanganan pada {suspiciousCount} payload yang
                     mencurigakan
                   </li>
                 )}

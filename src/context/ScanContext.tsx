@@ -1,9 +1,30 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
-const ScanContext = createContext(null);
+export interface VulnerabilityItem {
+  id?: number;
+  attack_type?: string;
+  severity?: string;
+  description?: string;
+  recommendation?: string;
+  payload?: string;
+  status?: string | number;
+  length?: string | number;
+  confidence?: number;
+  raw_vulnerability?: string;
+  ml_prediction?: number;
+  attack?: string;
+  vulnerability?: string;
+}
 
-export const ScanProvider = ({ children }) => {
-  const [result, setResult] = useState([]);
+interface ScanContextType {
+  result: VulnerabilityItem[];
+  setResult: (data: VulnerabilityItem[]) => void;
+}
+
+const ScanContext = createContext<ScanContextType | null>(null);
+
+export const ScanProvider = ({ children }: { children: ReactNode }) => {
+  const [result, setResult] = useState<VulnerabilityItem[]>([]);
 
   return (
     <ScanContext.Provider value={{ result, setResult }}>

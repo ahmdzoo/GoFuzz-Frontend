@@ -1,4 +1,3 @@
-import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
@@ -9,7 +8,6 @@ import OwaspEducation from "@/components/OwaspEducation";
 import CoreSection from "@/components/CoreSection";
 
 const Index = () => {
-  const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
